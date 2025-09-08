@@ -3314,4 +3314,60 @@ public class PatientServiceTest extends BaseContextSensitiveTest {
 		assertEquals("Could not find patient identifier validator com.example.InvalidIdentifierValidator", patientIdentifierException.getMessage());
 	}
 
+	/**
+	 * Test to verify patient creation with basic valid data
+	 * 
+	 * @see PatientService#savePatient(Patient)
+	 */
+	@Test
+	public void savePatient_shouldCreatePatientWithValidBasicData() {
+		Patient patient = new Patient();
+		patient.setGender("M");
+		
+		PersonName name = new PersonName("Test", "Automation", "Patient");
+		patient.addName(name);
+		
+		// Use a valid identifier format for type 1 (Luhn validation)
+		// Format: XXX-X where last digit is check digit
+		String baseIdentifier = "123"; // First part
+		String checkDigit = "0"; // Luhn check digit for "123" is "0"
+		String validIdentifier = baseIdentifier + "-" + checkDigit;
+		
+		PatientIdentifier identifier = new PatientIdentifier(
+			validIdentifier, 
+			patientService.getPatientIdentifierType(1), 
+			locationService.getLocation(1)
+		);
+		identifier.setPreferred(true);
+		patient.addIdentifier(identifier);
+		
+		Patient savedPatient = patientService.savePatient(patient);
+		
+		assertNotNull(savedPatient.getPatientId(), "Patient should be saved with an ID");
+		assertNotNull(savedPatient.getDateCreated(), "Patient should have creation date");
+		assertNotNull(savedPatient.getCreator(), "Patient should have a creator");
+	}
+
+	/**
+	 * Test to verify null patient name validation
+	 * 
+	 * @see PatientService#savePatient(Patient)
+	 */
+	@Test
+	public void savePatient_shouldThrowExceptionWhenNameIsNull() {
+		Patient patient = new Patient();
+		patient.setGender("M");
+		
+		PatientIdentifier identifier = new PatientIdentifier(
+			"TEST-123", 
+			patientService.getPatientIdentifierType(1), 
+			locationService.getLocation(1)
+		);
+		identifier.setPreferred(true);
+		patient.addIdentifier(identifier);
+		
+		// Deliberately don't add a name
+		assertThrows(APIException.class, () -> patientService.savePatient(patient));
+	}
+
 }
